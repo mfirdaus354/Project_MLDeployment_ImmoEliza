@@ -1,35 +1,39 @@
 import pandas as pd
 import seaborn as sns
 import numpy as np
-from typing import Optional, Union
+from typing import Optional, Union, Literal
 from sklearn.preprocessing import StandardScaler, OneHotEncoder, PolynomialFeatures
 from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import make_pipeline
-from sklearn.model_selection import cross_val_score, GridSearchCV
-from sklearn.metrics import make_scorer, mean_squared_error, mean_absolute_percentage_error
+from sklearn.model_selection import cross_val_score, GridSearchCV 
+from sklearn.metrics import make_scorer, mean_squared_error, mean_absolute_error, r2_score, mean_absolute_percentage_error
 from sklearn.impute import KNNImputer, SimpleImputer
 import xgboost as xgb
-
+from sklearn.pipeline import Pipeline
+import random
 
 class ModelConfig:
-    XGB_ParamGrid = {
-        'xgbregressor__n_estimators': [50, 100, 150, 200, 250, 300, 350, 400, 450, 500],
-        'xgbregressor__learning_rate': [0.001, 0.01, 0.1, 0.2, 0.3, 0.4],
-        'xgbregressor__max_depth': [3, 5, 7, 9, 11, 13],
-        'xgbregressor__min_child_weight': [1, 1.5, 2, 2.5, 3],
-        'xgbregressor__subsample': [0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8],
-        'xgbregressor__colsample_bytree': [0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8],
-        'xgbregressor__reg_lambda': [0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.1],
-        'xgbregressor__gamma': [0],
-        'xgbregressor__random_state': [42, 59, 6351],
-        'xgbregressor__objective': ['reg:squarederror'],
-        'xgbregressor__eval_metric': ['rmse', 'mape', 'explained_variance'],
-        'xgbregressor__early_stopping_rounds': [10, 20, 30, 40, 50],
-        'xgbregressor__verbose': [True]
-    }
 
-    def __init__(self):
-        pass
+
+    @staticmethod
+    def XGBParamConfig(Size=int()):
+        GB_ParamGrid = {
+            'xgbregressor_n_estimator': np.linspace(100, 1000, num=Size, dtype=int, endpoint=True).tolist(),
+            'xgbregressor__learning_rate': np.linspace(0.01, 0.1, num=Size, dtype=float, endpoint=True).tolist(),
+            'xgbregressor__max_depth': np.linspace(1, 10, num=Size, dtype=int, endpoint=True).tolist(),
+            'xgbregressor__min_child_weight': np.linspace(1.0, 5.0, num=Size, dtype=float, endpoint=True).tolist(),
+            'xgbregressor__subsample': np.linspace(0.5, 0.75, num=Size, dtype=float, endpoint=True).tolist(),
+            'xgbregressor__colsample_bytree':np.linspace(0.5, 0.75, num=Size, dtype=float, endpoint=True).tolist(),
+            'xgbregressor__reg_alpha':np.linspace(0.001, 0.1, num=Size, dtype=float, endpoint=True).tolist(),
+            'xgbregressor__reg_lambda': np.linspace(0.1, 0.5, num=Size, dtype=float, endpoint=True).tolist(),
+            'xgbregressor__gamma': np.linspace(0.1, 0.5, num=Size, dtype=float, endpoint=True).tolist(),
+            'xgbregressor__random_state': np.linspace(10, 1000, num=1, dtype=int, endpoint=True).tolist(),
+            'xgbregressor__objective': ['reg:pseudohubererror'],
+            'xgbregressor__eval_metric': ['mphe','mse','mae','r2'],
+            'xgbregressor__early_stopping_rounds': np.linspace(10, 1000, num=Size, dtype=int, endpoint=True).tolist(),
+            'xgbregressor__huber_slope': np.linspace(0.01, 0.1, num=Size, dtype=float, endpoint=True).tolist(),
+            'xgbregressor__verbose': np.linspace(1, 3, num=1, dtype=int, endpoint=True).tolist()
+    }
 
 
     @staticmethod
@@ -59,6 +63,28 @@ class ModelConfig:
         X = df.iloc[:, 1:].values
         y = df.iloc[:, 0].values
         return X, y
+    
+    @staticmethod
+    def PimpMyPipeline(steps: Union[str, list] = None, poly_degree:Optional[int]=2):
+        if isinstance(steps, list):
+            pipeline_steps= steps
+            for step in pipeline_steps:
+                if step == 'knn_imputer':
+                    pipeline_steps[pipeline_steps.index('knn_imputer')] = ('knn_imputer', KNNImputer(n_neighbors=np.linspace(1, 10, num=1, dtype=int, endpoint=True)[0], missing_values=np.NaN, weights="distance", keep_empty_features=True))
+                elif step == "poly_features":
+                    pipeline_steps[pipeline_steps.index('poly_features')] = ('poly_features', ModelConfig.poly_features_config(degree=poly_degree))
+                elif step == "std_scaler":
+                    pipeline_steps[pipeline_steps.index('std_scaler')] = ('std_scaler', StandardScaler(with_mean=False, with_std=True))
+                else:
+                    raise ValueError("Keywords not found")
+            if len(pipeline_steps) >= 2:
+                pipeline = Pipeline(steps=pipeline_steps)
+                return pipeline
+            else:
+                raise ValueError("The number of steps are inssufficient to build a pipeline.")
+
+        raise TypeError("Please provide a valid list of step keywords.")
+    
     
     @staticmethod    
     def column_transformer(to_fill: Optional[Union[str, list]] = None, to_scale: Optional[Union[str, list]] = None, to_encode: Optional[Union[str, list]] = None):
@@ -107,21 +133,26 @@ class ModelConfig:
     @staticmethod
     def XGBREGRConfig():
         xgb_reg = xgb.XGBRegressor(
-            n_estimators=[50, 100, 150, 200, 250, 300, 350, 400, 450, 500],
-            learning_rate=[0.001, 0.01, 0.1, 0.2, 0.3, 0.4],
-            max_depth=[3, 5, 7, 9, 11, 13],
-            min_child_weight=[1, 1.5, 2, 2.5, 3],
-            subsample=[0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8],
-            colsample_bytree=[0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8],
-            reg_alpha=0.01,
-            reg_lambda=[0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.1],
-            gamma=0,
-            n_jobs=-1,
-            objective='reg:squarederror',
-            eval_metric=['rmse', 'mape', 'explained_variance'],  # Evaluation metric on the validation set
-            early_stopping_rounds=[10, 20, 30, 40, 50],  # Early stopping after 10 rounds without improvement
-            verbose=1
-            )
+            n_estimators=1000,
+            learning_rate=0.1,
+            max_depth=5,
+            subsample=0.4,
+            colsample_bytree=0.4,
+            gamma=0.1,
+            reg_alpha=0.001,
+            reg_lambda=0.1,
+            objective='reg:pseudohubererror',
+            tree_method="hist",
+            min_child_weight=0.1,
+            base_score=0.4,
+            eval_metric="mphe",
+            early_stopping_rounds=30,
+            random_state=452,
+            huber_slope=0.1,
+            validate_parameters=True)
+        
+
+
         return xgb_reg
     
     @staticmethod
@@ -134,19 +165,29 @@ class ModelConfig:
         return poly_config
     
     @staticmethod
-    def XGBGridSearchCV(estimator = str(), 
-                        param: Optional[dict] =XGB_ParamGrid, 
-                        scoring: Optional[dict] = {'explained_variance': 'explained_variance',
-                                                   'mape': make_scorer(mean_absolute_percentage_error),
-                                                   'r2': 'r2'},
-                        refit=str(), 
-                        cv_fold: Optional[int] = 2, 
-                        n_jobs: Optional[int]= -1, 
-                        verbose: Optional[int]= 2):
- 
+    def GridSearchCV(est=str(), param=dict(), scores=list(), refit=str(), cv_base=list()):
+        grid_search = GridSearchCV(
+            estimator=est, 
+            param_grid=param, 
+            scoring=scores, 
+            n_jobs=-1, 
+            refit=refit, 
+            BaseCrossValidator=cv_base, 
+            verbose=2)
+
+    @staticmethod
+    def XGBGridSearchCV(
+        estimator = str(),
+        param: Optional[dict] = XGBParamConfig, 
+        scores= str(),
+        cv_fold: Optional[int] = 2):
         xgb_gridsearch = GridSearchCV(estimator=estimator,
             param_grid=param,
-            refit=refit,
+            scoring=scores,
+            refit=True,
+            return_train_score=True,
+            pre_dispatch='2*n_jobs',
+            error_score="raise",
             cv=cv_fold,
             n_jobs=-1,
             verbose=2
@@ -154,22 +195,25 @@ class ModelConfig:
 
         return xgb_gridsearch
     
-    
-    def custom_scorer(y_true, y_pred):
-        return -mean_squared_error(y_true, y_pred)
-    
-    def huber_loss(y_true, y_pred, delta=1.0):
+    @staticmethod
+    def custom_scorer(y_true, y_pred, keyword: Literal["mse", "mae", "r2", "mape"]):
+        if keyword == "mse":
+            return np.abs(mean_squared_error(y_true, y_pred, squared=True))
+        elif keyword == "mae":
+            return np.abs(mean_absolute_error(y_true, y_pred))
+        elif keyword == "r2":
+            return np.abs(r2_score(y_true, y_pred))
+        elif keyword == "mape":
+            return np.abs(mean_absolute_percentage_error(y_true, y_pred))
+        else:
+            raise ValueError("Invalid keyword input. Please try again.")
+
+    @staticmethod
+    def custom_pseudo_huber_loss(y_true, y_pred):
+        delta = 1.0  # You can adjust the delta value as needed
         residual = y_true - y_pred
-        absolute_residual = np.abs(residual)
-        quadratic_residual = 0.5 * (residual ** 2)
-        is_small_residual = absolute_residual <= delta
-        loss = np.where(is_small_residual, quadratic_residual, delta * absolute_residual - 0.5 * delta ** 2)
-        return np.mean(loss)
-    
-    def MAPE(y_true, y_pred):
-        return np.mean(np.abs((y_true - y_pred) / y_true)) * 100
-
-
+        huber_loss = np.abs(delta ** 2 * (np.sqrt(1 + (residual / delta) ** 2) - 1))
+        return huber_loss
 
 class Config:
     column_list_one = ["price", "habitable_surface", "bedroom_count", "room_count"]
