@@ -1,11 +1,10 @@
 from fastapi import Depends, FastAPI, HTTPException
 from sqlalchemy.orm import Session
 
-from . import crud, models, schemas
-from .database import SessionLocal, engine
-from .schemas import ItemBase, ItemCreate, Item, SimulationBase, SimulationCreate, Simulation
-from .models import Simulation, Item
-# from .
+from immo_eliza_sql_app import models 
+from immo_eliza_sql_app.schemas import Item, ItemBase, ItemCreate, Simulation, SimulationBase, SimulationCreate
+from immo_eliza_sql_app.database import engine, SessionLocal
+from immo_eliza_sql_app.crud import create_item, create_simulation
 models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
@@ -30,19 +29,12 @@ async def root():
 
 
 # API endpoint to enter new data
-@app.post("/database/insert-data/plot_area={plot_area}", response_model=schemas.ItemBase)
+@app.post("/insert-data", response_model=Item)
 async def insert_data(
-    plot_area: schemas.ItemCreate = 0, 
+    item: ItemCreate, 
     db: Session = Depends(get_db)
     ):
-    db_simulation_instance = crud.get_simulation(
-        db=db,  
-        simulation_id=Item.simulation_id)
-    if db_simulation_instance:
-        raise HTTPException(status_code=400, detail="This simulation has been executed. You cannot create another simulation on top of this simulation id")
-    
-    item = schemas.ItemCreate(plot_area=plot_area)
-    return crud.create_item(db=db, item=item)
+    return create_item(db=db, item=item)
 
 # @app.get("/database/get-datas/{start}/{stop}", response_model=models.Item)
 # async def get_data(
