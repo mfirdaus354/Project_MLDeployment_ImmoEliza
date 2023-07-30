@@ -14,30 +14,161 @@ from pandas.core.frame import DataFrame
 from sklearn.impute import KNNImputer, SimpleImputer
 
 
-
-class ModelConfig:
+class DataProcessor:
     @staticmethod
-    def DMatrixGenerator(xgb_model: XGB.XGBRegressor, main_array: Optional[Union[np.ndarray, list]], num_array=2, keyword= Literal["train"] | Literal["test"] | Literal["Test_Pred"], ref=Optional[Union[np.ndarray, list]]):
+    def load_data(filepath: str, file_type: str, usecols: Optional[list] = None) -> pd.DataFrame:
+        """
+        Load data from a specified file path and type.
+
+        Parameters:
+        filepath (str): The path to the data file.
+        file_type (str): The type of data file ('csv', 'json', 'excel', or 'pickle').
+        usecols (list, optional): List of columns to use from the data file.
+
+        Returns:
+        pd.DataFrame: The loaded data as a DataFrame.
+        """
+        if file_type not in ["csv", "json", "excel", "pickle"]:
+            raise ValueError("Invalid file_type. Supported types are 'csv', 'json', 'excel', and 'pickle'.")
+
+        if file_type == "csv":
+            return pd.read_csv(filepath, usecols=usecols)
+        elif file_type == "json":
+            return pd.read_json(filepath, usecols=usecols)
+        elif file_type == "excel":
+            return pd.read_excel(filepath, usecols=usecols)
+        elif file_type == "pickle":
+            return pd.read_pickle(filepath)
+
+    @staticmethod
+    def feature_target_config(df: pd.DataFrame, target_col: Optional[str] = None) -> tuple:
+        """
+        Extract features and target from the DataFrame.
+
+        Parameters:
+        df (pd.DataFrame): The DataFrame containing features and target data.
+        target_col (str, optional): The name of the target column (default is None).
+
+        Returns:
+        tuple: A tuple containing the feature data and target data as numpy arrays.
+        """
+        if df is None:
+            raise ValueError("Please provide a valid DataFrame.")
+
+        if target_col is not None:
+            y = df[target_col].values
+            X = df.drop(columns=[target_col], axis=1).values
+            return X, y
+
+        X = df.iloc[:, 1:].values
+        y = df.iloc[:, 0].values
+        return X, y
+    
+    @staticmethod
+    def PimpMyPipeline(steps: Optional[Union[str, list]] = None, poly_degree: Optional[int] = 2) -> Pipeline:
+        """
+        Create a data preprocessing pipeline with custom steps.
+
+        Parameters:
+        steps (Union[str, list], optional): List of step keywords ['knn_imputer', 'poly_features', 'std_scaler'].
+        poly_degree (int, optional): The degree of polynomial features (default is 2).
+
+        Currently supported libraries:
+        1. StandardScaler
+        2. KNNImputer
+        3. StandardScaler
+
+        Returns:
+        Pipeline: A configured data preprocessing pipeline.
+        """
+        available_steps = {
+            "knn_imputer": KNNImputer(
+                n_neighbors=5,
+                missing_values=np.nan,
+                weights="distance",
+                add_indicator=True,
+            ),
+            "poly_features": DataProcessor.poly_features_config(
+                degree=poly_degree, include_bias=True, order="F"
+            ),
+            "std_scaler": StandardScaler(with_mean=False, with_std=True),
+        }
+
+        if steps is None:
+            raise ValueError("Please provide a valid list of step keywords.")
+
+        if isinstance(steps, str):
+            steps = [steps]
+
+        if not all(step in available_steps for step in steps):
+            raise ValueError("Invalid step keyword. Supported steps are 'knn_imputer', 'poly_features', and 'std_scaler'.")
+
+        pipeline_steps = [(step, available_steps[step]) for step in steps]
+
+        if len(pipeline_steps) >= 2:
+            pipeline = Pipeline(steps=pipeline_steps)
+            return pipeline
+        else:
+            raise ValueError("The number of steps is insufficient to build a pipeline.")
+        
+    @staticmethod
+    def poly_features_config(
+        degree: Optional[int] = 2,
+        interaction_only: Optional[bool] = True,
+        include_bias: Optional[bool] = False,
+        ordzzz: Optional[str] = "F",
+    ):
+        """
+        Create a configuration for polynomial features.
+
+        Parameters:
+        degree (int, optional): The degree of the polynomial features (default is 2).
+        interaction_only (bool, optional): If True, only interaction features are produced (default is True).
+        include_bias (bool, optional): If True, include a bias column (default is False).
+        ordzzz (str, optional): The order of the output array (default is 'F').
+
+        Returns:
+        PolynomialFeatures: A configured PolynomialFeatures object.
+        """
+        poly_config = PolynomialFeatures(
+            degree=degree,
+            interaction_only=interaction_only,
+            include_bias=include_bias,
+            order=ordzzz,
+        )
+        return poly_config
+
+#####################################################################################################################################################
+class XGBOOSTUtilities:
+
+    @staticmethod
+    def DMatrixGenerator( 
+        main_array: Optional[Union[np.ndarray, list]], 
+        num_array: Optional[int] = 2, 
+        keyword= Literal["train"] | Literal["test"] | Literal["Test_Pred"], 
+        ref=Optional[Union[np.ndarray, list]]
+        ) -> XGB.DMatrix:
         r"""
         Prepare and return DMatrix objects for XGBoost training and evaluation.
 
         Parameters:
-        main_array --> List object containg multiple np.ndarray.
-        num_array = 2 --> can only accepts 2 np.ndarrays at a time
-        keyword ---> Literal[str objects] that is either "train", or "test" or "Test_Pred".
-        ref --> a np.ndaray object with identical shape dimension to main_array.
+        1. main_array --> List object containg multiple np.ndarray.
+        2. num_array --> can only accepts 2 np.ndarrays at a time.
+        3. keyword ---> Literal[str objects] that is either "train", or "test" or "Test_Pred".
+        4. ref --> a np.ndaray object with identical shape dimension to main_array.
 
         Returns:
 
         DTrain, XGB.DMatrix: DMatrix object for training.
-        Dtest, XGB.DMatrix: DMatrix object for testing
+        DTest, XGB.DMatrix: DMatrix object for testing.
         DTest_Pred, XGB.DMatrix: DMatrix object for Model Evaluation.
+        DCustom, XGB.DMatrix: DMatrix object.
 
         Suggestion:
         
-        To generate DTrain use [x_Train, y_train] for both the main_array and ref parameter, as well as the keyword "train".
-        To generate DTest use [x_Test, y_test] for both the main_array and ref parameter "test".
-        To generate DTest_Pred use [x_Train, y_train] for both the main_array and ref parameter "Test_Pred".
+        To generate DTrain use [x_Train, y_train] as the main_array and ref parameter, as well as the keyword "train".
+        To generate DTest use [x_Test, y_test] as the main_array and ref parameter "test".
+        To generate DTest_Pred use [x_Train, y_train] as the main_array and ref parameter "Test_Pred".
 
         """
 
@@ -76,15 +207,23 @@ class ModelConfig:
                 DTest_Pred = XGB.DMatrix(pd.concat(objs=[array_df_one, array_df_two], axis=1, nthread=-1, silent=True))
                 return DTest_Pred
         # Generating DCustom with minimum one main_array
-        elif keyword == "test" or keyword == "Test_Pred" and len(main_array)  == 1:
+        elif keyword == "test" or keyword == "Test_Pred" and len(main_array)  == 1 and main_array.shape == ref.shape:
             sort_indices = np.argsort(ref[0][:, 0])#template to begin sorting indices
             array_sorted_one = array[0][sort_indices]
             array_df_one = pd.DataFrame(array_sorted_two[:, :5], columns=["plot_area", "habitable_surface", "bedroom_count", "land_surface", "room_count"])
             DCustom = XGB.DMatrix(data=array_df_one, label=["X_test"])
+            return DCustom
+        # Exception Handling
+        elif num_array > 2:
+            raise ValueError("This tool can only accept 2 np.ndarray objects at a time. Please revise your input")
+        elif keyword == "train" or keyword == "test" or keyword == "Test_Pred":
+            raise ValueError("This tool can only recognize keywords that is either 'train', or 'test' or 'Test_Pred' ")
+        else:
+            raise ValueError("please try again")
 
             
     @staticmethod
-    def XGBParamConfig(Size=int()):
+    def XGB_GridSearch_ParamConfig(Size=int()):
         """
         Generate a dictionary of XGBoost hyperparameters with a specified grid size.
 
@@ -145,145 +284,35 @@ class ModelConfig:
         }
 
         return XGB_ParamGrid
-
+    
     @staticmethod
-    def load_data(filepath: str, file_type: str, usecols: Optional[list] = None):
-        """
-        Load data from a specified file path and type.
-
-        Parameters:
-        filepath (str): The path to the data file.
-        file_type (str): The type of data file ('csv', 'json', 'excel', or 'pickle').
-        usecols (list, optional): List of columns to use from the data file.
-
-        Returns:
-        pd.DataFrame: The loaded data as a DataFrame.
-        """
-        if file_type not in ["csv", "json", "excel", "pickle"]:
-            raise ValueError(
-                "Invalid file_type. Supported types are 'csv', 'json', 'excel', and 'pickle'."
-            )
-
-        if file_type == "csv":
-            return pd.read_csv(filepath, usecols=usecols)
-        elif file_type == "json":
-            return pd.read_json(filepath, usecols=usecols)
-        elif file_type == "excel":
-            return pd.read_excel(filepath, usecols=usecols)
-        elif file_type == "pickle":
-            return pd.read_pickle(filepath)
-
-    @staticmethod
-    def feature_target_config(df, target_col: Optional[str] = None):
-        """
-        Extract features and target from the DataFrame.
-
-        Parameters:
-        df (pd.DataFrame): The DataFrame containing features and target data.
-        target_col (str, optional): The name of the target column (default is None).
-
-        Returns:
-        tuple: A tuple containing the feature data and target data as numpy arrays.
-        """
-        if df is None:
-            raise ValueError("Please provide a valid DataFrame.")
-
-        if target_col is not None:
-            y = df[target_col].values
-            X = df.drop(columns=[target_col], axis=1).values
-            return X, y
-
-        X = df.iloc[:, 1:].values
-        y = df.iloc[:, 0].values
-        return X, y
-
-    @staticmethod
-    def PimpMyPipeline(steps: Union[str, list] = None, poly_degree: Optional[int] = 2):
-        if isinstance(steps, list):
-            pipeline_steps = steps
-            for step in pipeline_steps:
-                if step == "knn_imputer":
-                    pipeline_steps[pipeline_steps.index("knn_imputer")] = (
-                        "knn_imputer",
-                        KNNImputer(
-                            n_neighbors=np.linspace(
-                                1, 10, num=1, dtype=int, endpoint=True
-                            )[0],
-                            missing_values=np.NaN,
-                            weights="distance",
-                            keep_empty_features=True,
-                        ),
-                    )
-                elif step == "poly_features":
-                    pipeline_steps[pipeline_steps.index("poly_features")] = (
-                        "poly_features",
-                        ModelConfig.poly_features_config(
-                            degree=poly_degree, include_bias=True, ordzzz="F"
-                        ),
-                    )
-                elif step == "std_scaler":
-                    pipeline_steps[pipeline_steps.index("std_scaler")] = (
-                        "std_scaler",
-                        StandardScaler(with_mean=False, with_std=True),
-                    )
-                else:
-                    raise ValueError("Keywords not found")
-            if len(pipeline_steps) >= 2:
-                pipeline = Pipeline(steps=pipeline_steps)
-                return pipeline
-            else:
-                raise ValueError(
-                    "The number of steps are inssufficient to build a pipeline."
-                )
-
-        raise TypeError("Please provide a valid list of step keywords.")
-
-    @staticmethod
-    def column_transformer(
-        to_fill: Optional[Union[str, list]] = None,
-        to_scale: Optional[Union[str, list]] = None,
-        to_encode: Optional[Union[str, list]] = None,
-    ):
-        if isinstance(to_fill, str):
-            features_to_fill = [to_fill]
-
-        if isinstance(to_scale, str):
-            features_to_scale = [to_scale]
-
-        if isinstance(to_encode, str):
-            features_to_encode = [to_encode]
-
-        if to_fill is None and to_encode is None and to_scale is None:
-            raise ValueError("Invalid parameter input. Please try again.")
-
-        preprocessor = ColumnTransformer(
-            transformers=[
-                ("to_fill", make_pipeline(SimpleImputer(strategy="median")), to_fill),
-                (
-                    "to_scale",
-                    make_pipeline(StandardScaler(with_mean=False, with_std=True)),
-                    to_scale,
-                ),
-                (
-                    "to_encode",
-                    make_pipeline(
-                        OneHotEncoder(
-                            sparse=True,
-                            sparse_output=True,
-                            handle_unknown="ignore",
-                            max_categories=99,
-                        )
-                    ),
-                    to_encode,
-                ),
-            ]
-        )
-
-        return preprocessor
+    def XGB_ParamConfig(to_update: Optional[dict] = None):
+        if to_update is None:
+            param = {
+                "booster": "gbtree",
+                "tree_method": "hist",
+                "learning_rate": 0.01,
+                "max_depth": 5,
+                "subsample": 0.5,
+                "sampling_method": "uniform",
+                "colsample_bytree": 0.4,
+                "gamma": 0.1,
+                "reg_alpha": 0.001,
+                "reg_lambda": 0.1,
+                "objective": "reg:pseudohubererror",
+                "min_child_weight": 2,
+                "base_score": 0.4,
+                "eval_metric": "mse",
+                "early_stopping_rounds": 30,
+                "random_state": 452,
+                "huber_slope": 0.1,
+                "validate_parameters": 1,
+            }
+        return param
 
 
     @staticmethod
-    def XGBREGRConfig(
+    def XGBRegressor(
         x: np.ndarray, y: np.ndarray, test_size: float = 0.20, random_state: int = 452
     ) -> dict:
         """
@@ -299,74 +328,68 @@ class ModelConfig:
         dict: A dictionary containing information about the training process and model performance.
         """
         steps_taken = []
-        parameters=ModelConfig.XGB_param()
+        parameters = XGBOOSTUtilities.XGB_param()
 
-        def train_test_split(feature=x, target=y):
-            # Split the data into training and testing sets
-            X_train, X_test, y_train, y_test = train_test_split(
-                x, y, test_size=test_size, random_state=random_state
-            )
-            if isinstance(X_train, np.ndarray):
-                steps_taken.append("Train-Test Split has been done")
-                return X_train, X_test, y_train, y_test, steps_taken 
-            raise ValueError("Tran Test Split is failed")
-        
         def load_fit_predict_XGBRegressor():
-            # calling train_test_split
-            X_train, X_test, y_train, y_test, steps_taken = train_test_split()
+            """
+            Load, fit, and predict using XGBoost Regressor.
 
-            # generate DMatrixes
-            DTrain = ModelConfig.DMatrixGenerator(xgb_model=XGBRegr_model, keyword="train", main_array=[X_train, y_train], ref=[X_train, y_train])
-            if isinstance(DTrain, XGB.DMatrix):
-                steps_taken.append("DTrain has ben generated")
-            DTest = ModelConfig.DMatrixGenerator(xgb_model=XGBRegr_model, keyword="train", main_array=[X_test, y_test], ref=[X_test, y_test])
-            if isinstance(DT, XGB.DMatrix):
-                steps_taken.append("DTrain has ben generated")
+            Returns:
+            tuple: A tuple containing the trained model, predicted values, and model parameters.
+            """
+            X_train, X_test, y_train, y_test, steps_taken = train_test_split(feature=x, target=y)
 
-            # Loading XGBRFRegressor
-            XGBRegr_model = XGB.XGBRegressor().set_params(params=parameters)
+            # ... (XGBRegr_model initialization, then followed by DTrain generation and validation)
+
+            XGBRegr_model = XGB.XGBRegressor(**parameters)
             if isinstance(XGBRegr_model, XGB.XGBRegressor):
-                steps_taken("The XGBRegr_model is now initiated")
-                model_params = XGBRegr_model.get_xgb_params()
-
+                steps_taken.append("The XGBRegr_model is now initiated")
             
-            # Fitting XGBRegressor
-            XGBRegr_model.fit(X_train, y_train, sample_weight=np.linspace(start=0.2, stop=2.0, num=5, endpoint=True, dtype=float), verbose=True)
+            # ... (fit the XGBRegr_model and generate y_predict)
+            XGBRegr_model.fit(X_train, y_train, eval_set=[(X_train, y_train), (X_test, y_test)])
 
-            # predicting y_pred
-            DXTest = ModelConfig.DMatrixGenerator(xgb_model=XGBRegr_model,keyword="test", main_array=[X_test], ref=[X_test])
-            y_predict= XGBRegr_model.predict(x=DXTest, output_margin=True, training=True, iteration_range=(100, 1000))
+            # ...(generate y_predict)
+            y_predict = XGBRegr_model.predict(X_test)
+            if y_predict:
+                steps_taken.append("The XGBRegr_model has been fitted and the and it has succesfully generate predicted values")
 
-            return XGBRegr_model, y_predict
-            
-        def evaluate_XGBRegr_model():
+            return XGBRegr_model, y_predict, X_test, y_test, steps_taken
 
-            # calling train_test_split
-            X_train, X_test, y_train, y_test, steps_taken = train_test_split()
+        def evaluate_XGBRegr_model() -> tuple:
+            """
+            Evaluate the XGBoost Regressor model.
 
-            # Calling load_fit_predict_XGBRegressor()
-            XGBRegr_model, y_predict = load_fit_predict_XGBRegressor()
+            Returns:
+            tuple: A tuple containing evaluation results and scores.
+            """
 
-            DYTest = ModelConfig.DMatrixGenerator(xgb_model=XGBRegr_model, main_array=[X_test], keyword="test", ref=[X_test])
+            # Get the evaluation results from the XGBoost regressor model
+            eval_results = XGBRegr_model.evals_result()
 
-            best_iter= XGBRegr_model.best_iteration()
-            best_score = XGBRegr_model.best_score
-            eval_result = XGBRegr_model.evals_result()
-            if eval_results:
-                steps_taken.append("Evaluation matrices have been generated")
-            mse = mean_squared_error(y_true=DYTest, y_pred=y_predict, multioutput={'raw_values', 'uniform_average'}, squared=True)
-            rmse = mean_squared_error(y_true=DYTest, y_pred=y_predict, multioutput={'raw_values', 'uniform_average'}, squared=False)
-            mae = mean_absolute_error(y_true=DYTest, y_pred=y_predict, multioutput={'raw_values', 'uniform_average'})
-            mape= mean_absolute_percentage_error(y_true=DYTest, y_pred=y_predict, multioutput={'raw_values', 'uniform_average'})
-            r2_score = r2_score(y_true=y_test, multioutput={'raw_values', 'uniform_average'})
+            # ...(calling load_fit_predict_XGBRegressor )
+            XGBRegr_model, y_predict, X_test, y_test, steps_taken = load_fit_predict_XGBRegressor()
+            # ... (perform evaluations)
 
-            XGB.to_graphviz(booster=XGBRegr_model)
-        
+            best_iter = XGBRegr_model.best_iteration
+            r2_score = XGBRegr_model.score(X=X_test, y=y_test)
+            training_scores = pd.DataFrame(eval_results["validation_0"])
+            validation_score = pd.DataFrame(eval_results["validation_0"])
+
+            score_df = pd.DataFrame.from_dict(data={
+                "Best_iteration" : best_iter,
+                "r2": r2_score
+            })
+
+            training_validation_df = pd.concat(objs=[training_scores, validation_score], axis=1)
+
+            return XGBRegr_model, y_predict, score_df
+
+        XGBRegr_model, y_predict, best_iter, best_score, eval_results, score_df, graphviz_model, DYTest, y_predict = evaluate_XGBRegr_model()
 
         # Store the results in a dictionary
         results = {
             "Steps Taken": steps_taken,
-            "XGBRegressor": {"status" : ["initialized", "fitted", "trained", "predictions generated", "evaluation matrices generated"]},
+            "XGBRegressor": {"status": ["initialized", "fitted", "trained", "predictions generated", "evaluation matrices generated"]},
             "Train Test Split": True,
             "Best N-Iteration": best_iter,
             "Best Scores": best_score,
@@ -375,68 +398,18 @@ class ModelConfig:
         if len(results) == 5:
             # Save the model and results to a file
             with open("trained_XGB_model_1.pkl", "wb") as tp:
-                pickle.dump(XGB_reg, tp)
-            
-            XGB_reg.save_model(f"{os.getcwd()}/models/model/trained_XGB_model_1.json")
+                pickle.dump(XGBRegr_model, tp)
 
-        if len(results) != 6 :  # Check if all expected keys are present
-            raise ValueError(
-                "Something went wrong during the process. Please revise the steps."
-            )
+            XGBRegr_model.save_model(f"{os.getcwd()}/models/model/trained_XGB_model_1.json")
 
-        return XGB_reg, X_train, X_test, y_train, y_test, y_pred, eval_results, results
+        if len(results) != 6:  # Check if all expected keys are present
+            raise ValueError("Something went wrong during the process. Please revise the steps.")
 
-    @staticmethod
-    def XGB_param():
-        param = {
-            "booster": "gbtree",
-            "tree_method": "hist",
-            "interaction_constraints": [[1, 2, 3, 4, 5], [2, 3, 4], [1, 2, 4]],
-            "learning_rate": 0.1,
-            "max_depth": 5,
-            "subsample": 0.5,
-            "sampling_method": "uniform",
-            "colsample_bytree": 0.4,
-            "gamma": 0.1,
-            "reg_alpha": 0.001,
-            "reg_lambda": 0.1,
-            "objective": "reg:pseudohubererror",
-            "min_child_weight": 2,
-            "base_score": 0.4,
-            "eval_metric": ["rmse", "mae", 'mphe'],
-            "early_stopping_rounds": 30,
-            "random_state": 452,
-            "huber_slope": 0.1,
-            "validate_parameters": 1,
-        }
-        return param
+        return XGBRegr_model, y_predict, eval_results, results, best_iter, best_score, score_df, graphviz_model, DYTest
 
-    @staticmethod
-    def poly_features_config(
-        degree: Optional[int] = 2,
-        interaction_only: Optional[bool] = True,
-        include_bias: Optional[bool] = False,
-        ordzzz: Optional[str] = "F",
-    ):
-        """
-        Create a configuration for polynomial features.
 
-        Parameters:
-        degree (int, optional): The degree of the polynomial features (default is 2).
-        interaction_only (bool, optional): If True, only interaction features are produced (default is True).
-        include_bias (bool, optional): If True, include a bias column (default is False).
-        ordzzz (str, optional): The order of the output array (default is 'F').
 
-        Returns:
-        PolynomialFeatures: A configured PolynomialFeatures object.
-        """
-        poly_config = PolynomialFeatures(
-            degree=degree,
-            interaction_only=interaction_only,
-            include_bias=include_bias,
-            order=ordzzz,
-        )
-        return poly_config
+
 
     @staticmethod
     def GridSearchCV(
@@ -469,7 +442,7 @@ class ModelConfig:
     @staticmethod
     def XGBGridSearchCV(
         estimator=str(),
-        param: Optional[dict] = XGBParamConfig,
+        param: Optional[dict] = XGB_GridSearch_ParamConfig,
         scores=str(),
         cv_fold: Optional[int] = 2,
     ):
@@ -478,7 +451,7 @@ class ModelConfig:
 
         Parameters:
         estimator (str): The XGBoost estimator to use for fitting data.
-        param (dict, optional): The parameter grid to search (default is XGBParamConfig).
+        param (dict, optional): The parameter grid to search (default is XGB_GridSearch_ParamConfig).
         scores (str): The scoring method for the evaluation.
         cv_fold (int, optional): The number of cross-validation folds (default is 2).
 
@@ -564,7 +537,8 @@ class Config:
         Get the current working directory and change it to the parent directory named "Eliza".
         """
         cwd = os.getcwd()
-        return os.chdir(cwd[: (cwd.index("Eliza") + 5)])
+        os.chdir(cwd[: (cwd.index("Eliza") + 5)])
+        return os.getcwd()
 
     @staticmethod
     def expand_display(
