@@ -1,10 +1,9 @@
 from fastapi import Depends, FastAPI, HTTPException
 from sqlalchemy.orm import Session
 
-from immo_eliza_sql_app import models 
-from immo_eliza_sql_app.schemas import Item, ItemBase, ItemCreate, Simulation, SimulationBase, SimulationCreate
-from immo_eliza_sql_app.database import engine, SessionLocal
-from immo_eliza_sql_app.crud import create_item, create_simulation
+from . import crud, models, schemas
+from .database import SessionLocal, engine
+
 models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
@@ -19,28 +18,28 @@ def get_db():
         db.close()
 
 
-# GET REQUESTS
-@app.get("/")
-async def root():
-    intro = {
-        "message": "This is the API for Project-MLOps-Deployment"
-    }
-    return intro
+@app.post("/items/", response_model=schemas.Item)
+def create_item(item: schemas.ItemCreate, db: Session = Depends(get_db)):
+    return crud.create_item(db=db, item=item)
 
 
-# API endpoint to enter new data
-@app.post("/insert-data", response_model=Item)
-async def insert_data(
-    item: ItemCreate, 
-    db: Session = Depends(get_db)
-    ):
-    return create_item(db=db, item=item)
+@app.get("/items/", response_model=list[schemas.Item])
+def read_items(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+    items = crud.get_items(db, skip=skip, limit=limit)
+    return items
 
-# @app.get("/database/get-datas/{start}/{stop}", response_model=models.Item)
-# async def get_data(
-#     start: int,
-#     stop: int,
-#     db: Session = Depends(get_db)
-#     ):
-#     return crud.get_items(db:db, skip=start, limit=stop)
 
+@app.get("/item/{item_id}", response_model=schemas.ItemCreate)
+def read_item(item_id: int, db: Session = Depends(get_db)):
+    db_item = crud.get_item(db, item_id=item_id)
+    if db_item is None:
+        raise HTTPException(status_code=404, detail="Item not found")
+    return db_item
+
+
+@app.get("/items/nosim", response_model=list[schemas.Item])
+def read_items_without_sim(
+    skip: int = 0, limit: int = 100, db: Session = Depends(get_db)
+):
+    items = crud.get_items_without_sim(db, skip=skip, limit=limit)
+    return items
