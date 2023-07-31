@@ -4,19 +4,33 @@ import numpy as np
 import xgboost as XGB
 import os
 import pickle
+import subprocess
 from typing import Optional, Union, Literal
 from sklearn.preprocessing import StandardScaler, OneHotEncoder, PolynomialFeatures
 from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline, make_pipeline
-from sklearn.model_selection import train_test_split, GridSearchCV, cross_val_score, validation_curve
-from sklearn.metrics import make_scorer, mean_squared_error, r2_score, mean_absolute_error, mean_absolute_percentage_error
+from sklearn.model_selection import (
+    train_test_split,
+    GridSearchCV,
+    cross_val_score,
+    validation_curve,
+)
+from sklearn.metrics import (
+    make_scorer,
+    mean_squared_error,
+    r2_score,
+    mean_absolute_error,
+    mean_absolute_percentage_error,
+)
 from pandas.core.frame import DataFrame
 from sklearn.impute import KNNImputer, SimpleImputer
 
 
 class DataProcessor:
     @staticmethod
-    def load_data(filepath: str, file_type: str, usecols: Optional[list] = None) -> pd.DataFrame:
+    def load_data(
+        filepath: str, file_type: str, usecols: Optional[list] = None
+    ) -> pd.DataFrame:
         """
         Load data from a specified file path and type.
 
@@ -29,7 +43,9 @@ class DataProcessor:
         pd.DataFrame: The loaded data as a DataFrame.
         """
         if file_type not in ["csv", "json", "excel", "pickle"]:
-            raise ValueError("Invalid file_type. Supported types are 'csv', 'json', 'excel', and 'pickle'.")
+            raise ValueError(
+                "Invalid file_type. Supported types are 'csv', 'json', 'excel', and 'pickle'."
+            )
 
         if file_type == "csv":
             return pd.read_csv(filepath, usecols=usecols)
@@ -41,7 +57,9 @@ class DataProcessor:
             return pd.read_pickle(filepath)
 
     @staticmethod
-    def feature_target_config(df: pd.DataFrame, target_col: Optional[str] = None) -> tuple:
+    def feature_target_config(
+        df: pd.DataFrame, target_col: Optional[str] = None
+    ) -> tuple:
         """
         Extract features and target from the DataFrame.
 
@@ -63,9 +81,11 @@ class DataProcessor:
         X = df.iloc[:, 1:].values
         y = df.iloc[:, 0].values
         return X, y
-    
+
     @staticmethod
-    def PimpMyPipeline(steps: Optional[Union[str, list]] = None, poly_degree: Optional[int] = 2) -> Pipeline:
+    def PimpMyPipeline(
+        steps: Optional[Union[str, list]] = None, poly_degree: Optional[int] = 2
+    ) -> Pipeline:
         """
         Create a data preprocessing pipeline with custom steps.
 
@@ -101,7 +121,9 @@ class DataProcessor:
             steps = [steps]
 
         if not all(step in available_steps for step in steps):
-            raise ValueError("Invalid step keyword. Supported steps are 'knn_imputer', 'poly_features', and 'std_scaler'.")
+            raise ValueError(
+                "Invalid step keyword. Supported steps are 'knn_imputer', 'poly_features', and 'std_scaler'."
+            )
 
         pipeline_steps = [(step, available_steps[step]) for step in steps]
 
@@ -110,7 +132,7 @@ class DataProcessor:
             return pipeline
         else:
             raise ValueError("The number of steps is insufficient to build a pipeline.")
-        
+
     @staticmethod
     def poly_features_config(
         degree: Optional[int] = 2,
@@ -138,16 +160,16 @@ class DataProcessor:
         )
         return poly_config
 
+
 #####################################################################################################################################################
 class XGBOOSTUtilities:
-
     @staticmethod
-    def DMatrixGenerator( 
-        main_array: Optional[Union[np.ndarray, list]], 
-        num_array: Optional[int] = 2, 
-        keyword= Literal["train"] | Literal["test"] | Literal["Test_Pred"], 
-        ref=Optional[Union[np.ndarray, list]]
-        ) -> XGB.DMatrix:
+    def DMatrixGenerator(
+        main_array: Optional[Union[np.ndarray, list]],
+        num_array: Optional[int] = 2,
+        keyword=Literal["train"] | Literal["test"] | Literal["Test_Pred"],
+        ref=Optional[Union[np.ndarray, list]],
+    ) -> XGB.DMatrix:
         r"""
         Prepare and return DMatrix objects for XGBoost training and evaluation.
 
@@ -165,63 +187,131 @@ class XGBOOSTUtilities:
         DCustom, XGB.DMatrix: DMatrix object.
 
         Suggestion:
-        
+
         To generate DTrain use [x_Train, y_train] as the main_array and ref parameter, as well as the keyword "train".
         To generate DTest use [x_Test, y_test] as the main_array and ref parameter "test".
         To generate DTest_Pred use [x_Train, y_train] as the main_array and ref parameter "Test_Pred".
 
         """
 
-        
-        # GENERATING DTrain       
+        # GENERATING DTrain
         if keyword == "train" or ref.shape == list(tuple([12936, 32]), ([3234, 32])):
-            for array in main_array:    
-                sort_indices_one = np.argsort(ref[0][:, 0])#template to begin sorting indices
+            for array in main_array:
+                sort_indices_one = np.argsort(
+                    ref[0][:, 0]
+                )  # template to begin sorting indices
                 array_sorted_one = array[0][sort_indices]
-                sort_indices_two = np.argsort(ref[-1][:, 0])#template to begin sorting indices
+                sort_indices_two = np.argsort(
+                    ref[-1][:, 0]
+                )  # template to begin sorting indices
                 array_sorted_two = array[-1][sort_indices]
-                array_df_one = pd.DataFrame(array_sorted_one[:, :5], columns=["plot_area", "habitable_surface", "bedroom_count", "land_surface", "room_count"])
+                array_df_one = pd.DataFrame(
+                    array_sorted_one[:, :5],
+                    columns=[
+                        "plot_area",
+                        "habitable_surface",
+                        "bedroom_count",
+                        "land_surface",
+                        "room_count",
+                    ],
+                )
                 array_df_two = pd.DataFrame(array_sorted_two[:, :1], columns=["price"])
-                
-                DTrain = XGB.DMatrix(data=pd.concat(objs=[array_df_one, array_df_two], axis=1), label=["X_train", "y_train"], nthread=-1, silent=True)
+
+                DTrain = XGB.DMatrix(
+                    data=pd.concat(objs=[array_df_one, array_df_two], axis=1),
+                    label=["X_train", "y_train"],
+                    nthread=-1,
+                    silent=True,
+                )
                 return DTrain
         # GENERATING Dtest
         elif keyword == "test" or ref.shape == tuple([3234, 32]):
-            for array in main_array:    
-                sort_indices_one = np.argsort(ref[0][:, 0])#template to begin sorting indices
+            for array in main_array:
+                sort_indices_one = np.argsort(
+                    ref[0][:, 0]
+                )  # template to begin sorting indices
                 array_sorted_one = array[0][sort_indices]
-                sort_indices_two = np.argsort(ref[-1][:, 0])#template to begin sorting indices
+                sort_indices_two = np.argsort(
+                    ref[-1][:, 0]
+                )  # template to begin sorting indices
                 array_sorted_two = array[-1][sort_indices]
-                array_df_one = pd.DataFrame(array_sorted_two[:, :5], columns=["plot_area", "habitable_surface", "bedroom_count", "land_surface", "room_count"])
+                array_df_one = pd.DataFrame(
+                    array_sorted_two[:, :5],
+                    columns=[
+                        "plot_area",
+                        "habitable_surface",
+                        "bedroom_count",
+                        "land_surface",
+                        "room_count",
+                    ],
+                )
                 array_df_two = pd.DataFrame(array_sorted_one[:, :1], columns=["price"])
-                Dtest = XGB.DMatrix(pd.concat(objs=[array_df_one, array_df_two], label=["X_test", "Y_test"], axis=1, nthread=-1, silent=True))
+                Dtest = XGB.DMatrix(
+                    pd.concat(
+                        objs=[array_df_one, array_df_two],
+                        label=["X_test", "Y_test"],
+                        axis=1,
+                        nthread=-1,
+                        silent=True,
+                    )
+                )
                 return Dtest
         # GENERATING DTest_Pred
         elif keyword == "Test_Pred" or ref[0].shape == tuple([3234, 32]):
-            for array in main_array:    
-                sort_indices = np.argsort(ref[0][:, 0])#template to begin sorting indices
+            for array in main_array:
+                sort_indices = np.argsort(
+                    ref[0][:, 0]
+                )  # template to begin sorting indices
                 array_sorted_one = array[0][sort_indices]
                 array_sorted_two = array[-1][sort_indices]
-                array_df_one = pd.DataFrame(array_sorted_one[:, :1], columns=["test_va;ue"])
-                array_df_two = pd.DataFrame(array_sorted_two[:, :1], columns=["predicted_value"])
-                DTest_Pred = XGB.DMatrix(pd.concat(objs=[array_df_one, array_df_two], axis=1, nthread=-1, silent=True))
+                array_df_one = pd.DataFrame(
+                    array_sorted_one[:, :1], columns=["test_va;ue"]
+                )
+                array_df_two = pd.DataFrame(
+                    array_sorted_two[:, :1], columns=["predicted_value"]
+                )
+                DTest_Pred = XGB.DMatrix(
+                    pd.concat(
+                        objs=[array_df_one, array_df_two],
+                        axis=1,
+                        nthread=-1,
+                        silent=True,
+                    )
+                )
                 return DTest_Pred
         # Generating DCustom with minimum one main_array
-        elif keyword == "test" or keyword == "Test_Pred" and len(main_array)  == 1 and main_array.shape == ref.shape:
-            sort_indices = np.argsort(ref[0][:, 0])#template to begin sorting indices
+        elif (
+            keyword == "test"
+            or keyword == "Test_Pred"
+            and len(main_array) == 1
+            and main_array.shape == ref.shape
+        ):
+            sort_indices = np.argsort(ref[0][:, 0])  # template to begin sorting indices
             array_sorted_one = array[0][sort_indices]
-            array_df_one = pd.DataFrame(array_sorted_two[:, :5], columns=["plot_area", "habitable_surface", "bedroom_count", "land_surface", "room_count"])
+            array_df_one = pd.DataFrame(
+                array_sorted_two[:, :5],
+                columns=[
+                    "plot_area",
+                    "habitable_surface",
+                    "bedroom_count",
+                    "land_surface",
+                    "room_count",
+                ],
+            )
             DCustom = XGB.DMatrix(data=array_df_one, label=["X_test"])
             return DCustom
         # Exception Handling
         elif num_array > 2:
-            raise ValueError("This tool can only accept 2 np.ndarray objects at a time. Please revise your input")
+            raise ValueError(
+                "This tool can only accept 2 np.ndarray objects at a time. Please revise your input"
+            )
         elif keyword == "train" or keyword == "test" or keyword == "Test_Pred":
-            raise ValueError("This tool can only recognize keywords that is either 'train', or 'test' or 'Test_Pred' ")
+            raise ValueError(
+                "This tool can only recognize keywords that is either 'train', or 'test' or 'Test_Pred' "
+            )
         else:
             raise ValueError("please try again")
 
-            
     @staticmethod
     def XGB_GridSearch_ParamConfig(Size=int()):
         """
@@ -284,7 +374,7 @@ class XGBOOSTUtilities:
         }
 
         return XGB_ParamGrid
-    
+
     @staticmethod
     def XGB_ParamConfig(to_update: Optional[dict] = None):
         if to_update is None:
@@ -309,7 +399,6 @@ class XGBOOSTUtilities:
                 "validate_parameters": 1,
             }
         return param
-
 
     @staticmethod
     def XGBRegressor(
@@ -337,21 +426,27 @@ class XGBOOSTUtilities:
             Returns:
             tuple: A tuple containing the trained model, predicted values, and model parameters.
             """
-            X_train, X_test, y_train, y_test, steps_taken = train_test_split(feature=x, target=y)
+            X_train, X_test, y_train, y_test, steps_taken = train_test_split(
+                feature=x, target=y
+            )
 
             # ... (XGBRegr_model initialization, then followed by DTrain generation and validation)
 
             XGBRegr_model = XGB.XGBRegressor(**parameters)
             if isinstance(XGBRegr_model, XGB.XGBRegressor):
                 steps_taken.append("The XGBRegr_model is now initiated")
-            
+
             # ... (fit the XGBRegr_model and generate y_predict)
-            XGBRegr_model.fit(X_train, y_train, eval_set=[(X_train, y_train), (X_test, y_test)])
+            XGBRegr_model.fit(
+                X_train, y_train, eval_set=[(X_train, y_train), (X_test, y_test)]
+            )
 
             # ...(generate y_predict)
             y_predict = XGBRegr_model.predict(X_test)
             if y_predict:
-                steps_taken.append("The XGBRegr_model has been fitted and the and it has succesfully generate predicted values")
+                steps_taken.append(
+                    "The XGBRegr_model has been fitted and the and it has succesfully generate predicted values"
+                )
 
             return XGBRegr_model, y_predict, X_test, y_test, steps_taken
 
@@ -367,7 +462,13 @@ class XGBOOSTUtilities:
             eval_results = XGBRegr_model.evals_result()
 
             # ...(calling load_fit_predict_XGBRegressor )
-            XGBRegr_model, y_predict, X_test, y_test, steps_taken = load_fit_predict_XGBRegressor()
+            (
+                XGBRegr_model,
+                y_predict,
+                X_test,
+                y_test,
+                steps_taken,
+            ) = load_fit_predict_XGBRegressor()
             # ... (perform evaluations)
 
             best_iter = XGBRegr_model.best_iteration
@@ -375,21 +476,40 @@ class XGBOOSTUtilities:
             training_scores = pd.DataFrame(eval_results["validation_0"])
             validation_score = pd.DataFrame(eval_results["validation_0"])
 
-            score_df = pd.DataFrame.from_dict(data={
-                "Best_iteration" : best_iter,
-                "r2": r2_score
-            })
+            score_df = pd.DataFrame.from_dict(
+                data={"Best_iteration": best_iter, "r2": r2_score}
+            )
 
-            training_validation_df = pd.concat(objs=[training_scores, validation_score], axis=1)
+            training_validation_df = pd.concat(
+                objs=[training_scores, validation_score], axis=1
+            )
 
             return XGBRegr_model, y_predict, score_df
 
-        XGBRegr_model, y_predict, best_iter, best_score, eval_results, score_df, graphviz_model, DYTest, y_predict = evaluate_XGBRegr_model()
+        (
+            XGBRegr_model,
+            y_predict,
+            best_iter,
+            best_score,
+            eval_results,
+            score_df,
+            graphviz_model,
+            DYTest,
+            y_predict,
+        ) = evaluate_XGBRegr_model()
 
         # Store the results in a dictionary
         results = {
             "Steps Taken": steps_taken,
-            "XGBRegressor": {"status": ["initialized", "fitted", "trained", "predictions generated", "evaluation matrices generated"]},
+            "XGBRegressor": {
+                "status": [
+                    "initialized",
+                    "fitted",
+                    "trained",
+                    "predictions generated",
+                    "evaluation matrices generated",
+                ]
+            },
             "Train Test Split": True,
             "Best N-Iteration": best_iter,
             "Best Scores": best_score,
@@ -400,16 +520,26 @@ class XGBOOSTUtilities:
             with open("trained_XGB_model_1.pkl", "wb") as tp:
                 pickle.dump(XGBRegr_model, tp)
 
-            XGBRegr_model.save_model(f"{os.getcwd()}/models/model/trained_XGB_model_1.json")
+            XGBRegr_model.save_model(
+                f"{os.getcwd()}/models/model/trained_XGB_model_1.json"
+            )
 
         if len(results) != 6:  # Check if all expected keys are present
-            raise ValueError("Something went wrong during the process. Please revise the steps.")
+            raise ValueError(
+                "Something went wrong during the process. Please revise the steps."
+            )
 
-        return XGBRegr_model, y_predict, eval_results, results, best_iter, best_score, score_df, graphviz_model, DYTest
-
-
-
-
+        return (
+            XGBRegr_model,
+            y_predict,
+            eval_results,
+            results,
+            best_iter,
+            best_score,
+            score_df,
+            graphviz_model,
+            DYTest,
+        )
 
     @staticmethod
     def GridSearchCV(
@@ -615,3 +745,11 @@ class Config:
         sns.set_theme(style="whitegrid", palette="pastel")
         sns.set(rc={"figure.figsize": (100, 100)})
         sns.set(font_scale=3)
+
+    @classmethod
+    def run_uvicorn(cls):
+        """
+        run uvicorn specifically for Project_MLDeployment_Immo_Eliza
+        """
+        uvicorn_command = "uvicorn immo_eliza_api.app:app --reload"
+        subprocess.run(uvicorn_command, shell=True)
