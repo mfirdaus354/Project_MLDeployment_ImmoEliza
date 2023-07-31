@@ -17,7 +17,6 @@ print(os.getcwd())
 ################################################################
 
 from preprocessing import input_preprocess
-from src.config import Config
 from prediction import prediction
 
 plot_area = input("Please input the plot area of your property in decimals  =  ")
