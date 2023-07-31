@@ -50,41 +50,41 @@ The main files for data preprocessing, model training, and API endpoints are loc
 
 The project follows the following directory structure:
 
-Project_MLDevelopment_ImmoEliza/
-|__ data
-│ ├── categoricals.csv
-│ ├── continuous.csv
-│ ├── data_forsale_new.csv
-│ ├── dataset.json
-│ ├── df_sale_clean.csv
-│ ├── final-csv.csv
-├── immo_eliza_api/
-│ ├── app.py
-│ ├── crud.py
-│ ├── database.py
-│ ├── models.py
-│ ├── schemas.py
-|__ model-building
-│ ├── immo_reg_model.ipynb
-│ ├── model_selection_regression.ipynb
-|__ models
-│ ├── xgb_reg_model.pkl
-|__ notebooks
-│ ├── immobel_analysis.ipynb
-│ ├── immobel_insight.ipynb
-|__ output
-│ ├── Parameters.pdf
-│ ├── price_dist_provinces.png
-|__ src
-│ ├── config.py
-│ ├── pimp_my_data.py
-|__ virtualenv
-|__ main.py
-|__ prediction.py
-|__ preprocessing.py
-|__ README.md
-|__ requirements.txt
-|__ sql_app.db
+ Project_MLDevelopment_ImmoEliza/
+ |__ data
+ │  ├── categoricals.csv
+ │  ├── continuous.csv
+ │  ├── data_forsale_new.csv
+ │  ├── dataset.json
+ │  ├── df_sale_clean.csv
+ │  ├── final-csv.csv
+ ├── immo_eliza_api/
+ │  ├── app.py
+ │  ├── crud.py
+ │  ├── database.py
+ │  ├── models.py
+ │  ├── schemas.py
+ |__ model-building
+ │  ├── immo_reg_model.ipynb
+ │  ├── model_selection_regression.ipynb
+ |__ models
+ │  ├── xgb_reg_model.pkl
+ |__ notebooks
+ │  ├── immobel_analysis.ipynb
+ │  ├── immobel_insight.ipynb
+ |__ output
+ │  ├── Parameters.pdf
+ │  ├── price_dist_provinces.png
+ |__ src
+ │  ├── config.py
+ │  ├── pimp_my_data.py
+ |__ virtualenv
+ |__ main.py
+ |__ prediction.py
+ |__ preprocessing.py
+ |__ README.md
+ |__ requirements.txt
+ |__ sql_app.db
 
 - `immo_eliza_api`: Contains the FastAPI application and relevant code.
 - `notebooks`: Contains Jupyter notebooks for data exploration.
