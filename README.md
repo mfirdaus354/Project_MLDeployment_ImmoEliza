@@ -1,12 +1,5 @@
 # Project_MLDeployment_ImmoEliza - Machine Learning Deployment
 
-This project is a continuation of multiple iterations of ImmoEliza projects, whose objective is to approach the challenge of real estate property valuation by using data science methodology. The end goal of this project is to predict property prices based on various features like plot area, habitable surface, land. This README provides an overview of the project and explains how to use the code.
-
-You can always consult to other notebooks of that is contained in this repository or check other repositories that I have done under ImmoEliza project
-
- 1. [Project Immobel - Exploratory Data Analysis on Belgium's Real Estate Market ](https://github.com/mfirdaus354/project-immobel)
- 2. [Project Immo_Regression - My first attempt on generating supervised machine learning model using the data obtained through Project Immobel](https://github.com/mfirdaus354/project_immo_regression)
-
 ## Table of Contents
 
 - [Introduction](#introduction)
@@ -17,6 +10,13 @@ You can always consult to other notebooks of that is contained in this repositor
 - [License](#license)
 
 ## Introduction
+
+This project is a continuation of multiple iterations of ImmoEliza projects, whose objective is to approach the challenge of real estate property valuation by using data science methodology. The end goal of this project is to predict property prices based on various features like plot area, habitable surface, land. This README provides an overview of the project and explains how to use the code.
+
+You can always consult to other notebooks of that is contained in this repository or check other repositories that I have done under ImmoEliza project
+
+ 1. [Project Immobel - Exploratory Data Analysis on Belgium's Real Estate Market ](https://github.com/mfirdaus354/project-immobel)
+ 2. [Project Immo_Regression - My first attempt on generating supervised machine learning model using the data obtained through Project Immobel](https://github.com/mfirdaus354/project_immo_regression)
 
 The ImmoEliza project involves building and deploying a machine learning model to predict property prices. The project includes the following components:
 
