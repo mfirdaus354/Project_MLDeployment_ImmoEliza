@@ -51,41 +51,41 @@ The main files for data preprocessing, model training, and API endpoints are loc
 The project follows the following directory structure:
 
 .
-└── ./Project_MLDevelopment_ImmoEliza/
-    ├── ./Project_MLDevelopment_ImmoEliza/data/
-    │   ├── ./Project_MLDevelopment_ImmoEliza/data/categoricals.csv
-    │   ├── ./Project_MLDevelopment_ImmoEliza/data/continuous.csv
-    │   ├── ./Project_MLDevelopment_ImmoEliza/data/data_forsale_new.csv
-    │   ├── ./Project_MLDevelopment_ImmoEliza/data/dataset.json
-    │   ├── ./Project_MLDevelopment_ImmoEliza/data/df_sale_clean.csv
-    │   └── ./Project_MLDevelopment_ImmoEliza/data/final-csv.csv
-    ├── ./Project_MLDevelopment_ImmoEliza/immo_eliza_api/
-    │   ├── ./Project_MLDevelopment_ImmoEliza/immo_eliza_api/app.py
-    │   ├── ./Project_MLDevelopment_ImmoEliza/immo_eliza_api/crud.py
-    │   ├── ./Project_MLDevelopment_ImmoEliza/immo_eliza_api/database.py
-    │   ├── ./Project_MLDevelopment_ImmoEliza/immo_eliza_api/models.py
-    │   └── ./Project_MLDevelopment_ImmoEliza/immo_eliza_api/schemas.py
-    ├── ./Project_MLDevelopment_ImmoEliza/model-building/
-    │   ├── ./Project_MLDevelopment_ImmoEliza/model-building/immo_reg_model.ipynb
-    │   └── ./Project_MLDevelopment_ImmoEliza/model-building/model_selection_regression.ipynb
-    ├── ./Project_MLDevelopment_ImmoEliza/models/
-    │   └── ./Project_MLDevelopment_ImmoEliza/models/xgb_reg_model.pkl
-    ├── ./Project_MLDevelopment_ImmoEliza/notebooks/
-    │   ├── ./Project_MLDevelopment_ImmoEliza/notebooks/immobel_analysis.ipynb
-    │   └── ./Project_MLDevelopment_ImmoEliza/notebooks/immobel_insight.ipynb
-    ├── ./Project_MLDevelopment_ImmoEliza/output/
-    │   ├── ./Project_MLDevelopment_ImmoEliza/output/Parameters.pdf
-    │   └── ./Project_MLDevelopment_ImmoEliza/output/price_dist_provinces.png
-    ├── ./Project_MLDevelopment_ImmoEliza/src/
-    │   ├── ./Project_MLDevelopment_ImmoEliza/src/config.py
-    │   └── ./Project_MLDevelopment_ImmoEliza/src/pimp_my_data.py
-    ├── ./Project_MLDevelopment_ImmoEliza/virtualenv
-    ├── ./Project_MLDevelopment_ImmoEliza/main.py
-    ├── ./Project_MLDevelopment_ImmoEliza/prediction.py
-    ├── ./Project_MLDevelopment_ImmoEliza/preprocessing.py
-    ├── ./Project_MLDevelopment_ImmoEliza/README.md
-    ├── ./Project_MLDevelopment_ImmoEliza/requirements.txt
-    └── ./Project_MLDevelopment_ImmoEliza/sql_app.db
+└── Project_MLDevelopment_ImmoEliza/
+    ├── data/
+    │   ├── categoricals.csv
+    │   ├── continuous.csv
+    │   ├── data_forsale_new.csv
+    │   ├── dataset.json
+    │   ├── df_sale_clean.csv
+    │   └── final-csv.csv
+    ├── immo_eliza_api/
+    │   ├── app.py
+    │   ├── crud.py
+    │   ├── database.py
+    │   ├── models.py
+    │   └── schemas.py
+    ├── model-building/
+    │   ├── immo_reg_model.ipynb
+    │   └── model_selection_regression.ipynb
+    ├── models/
+    │   └── xgb_reg_model.pkl
+    ├── notebooks/
+    │   ├── immobel_analysis.ipynb
+    │   └── immobel_insight.ipynb
+    ├── output/
+    │   ├── Parameters.pdf
+    │   └── price_dist_provinces.png
+    ├── src/
+    │   ├── config.py
+    │   └── pimp_my_data.py
+    ├── virtualenv
+    ├── main.py
+    ├── prediction.py
+    ├── preprocessing.py
+    ├── README.md
+    ├── requirements.txt
+    └── sql_app.db
 
 - `immo_eliza_api`: Contains the FastAPI application and relevant code.
 - `notebooks`: Contains Jupyter notebooks for data exploration.
