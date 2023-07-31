@@ -40,7 +40,7 @@ To use the project, follow these steps:
 1. Ensure the dependencies are installed (see [Installation](#installation)).
 2. Run run_uvicorn.py in a Terminal window
         python -m run_uvicorn.py
-3. Then, run main.py to generate price prediction. Execute this following command in anoter Teminal Window
+3. Then, run main.py to generate price prediction. Execute this following command in another Teminal Window
         python -m main.py
 4. The API will be accessible at `http://127.0.0.1:8000`.
 
