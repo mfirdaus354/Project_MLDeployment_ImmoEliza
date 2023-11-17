@@ -99,7 +99,7 @@ The project follows the following directory structure:
 
 ## Contributing
 
-Contributions to the project are welcome! If you find any bugs or want to add new features, please create a pull request.
+Contributions to the project are wholeheartedly welcomed! If you find any bugs or want to add new features, please create a pull request.
 
 ## License
 
