@@ -1,4 +1,4 @@
-# Project_MLDeployment_ImmoEliza - Machine Learning Deployment
+# Project_ImmoEliza - Machine Learning Deployment
 
 ## Table of Contents
 
