@@ -50,7 +50,10 @@ The main files for data preprocessing, model training, and API endpoints are loc
 
 The project follows the following directory structure:
 
-.
+# Folder Structure
+
+
+```bash
 └── Project_MLDevelopment_ImmoEliza/
     ├── data/
     │   ├── categoricals.csv
@@ -86,6 +89,7 @@ The project follows the following directory structure:
     ├── README.md
     ├── requirements.txt
     └── sql_app.db
+```
 
 - `immo_eliza_api`: Contains the FastAPI application and relevant code.
 - `notebooks`: Contains Jupyter notebooks for data exploration.
